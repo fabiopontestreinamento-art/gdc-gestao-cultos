@@ -1,0 +1,71 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
+@import "tailwindcss";
+
+* {
+  font-family: "Inter", sans-serif;
+}
+
+body {
+  margin: 0;
+  background: #eff6ff;
+}
+
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
+
+@media print {
+  /* Ocultar elementos de UI */
+  nav, 
+  header, 
+  .no-print,
+  button:not(.print-visible) {
+    display: none !important;
+  }
+
+  /* Ajustar container principal para impressão */
+  body, #root {
+    background: white !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  main {
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+  }
+
+  section {
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  /* Garantir que o relatório ocupe a página toda e remova sombras */
+  .print-container {
+    display: block !important;
+    width: 100% !important;
+    box-shadow: none !important;
+    border: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+  }
+
+  /* Forçar cores de fundo na impressão */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Ocultar cabeçalhos e rodapés padrão do navegador */
+  @page {
+    margin: 0.5cm;
+  }
+}
