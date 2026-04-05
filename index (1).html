@@ -1,0 +1,1357 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>GDC – Gestão de Cultos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --navy:#0B1D3A;--navy2:#162D55;--navy3:#1E3F6F;
+  --red:#C0392B;--red2:#E74C3C;--red3:#FDECEA;
+  --gold:#D4A843;
+  --white:#FFFFFF;--off:#F7F8FC;--g1:#E8EBF2;--g2:#B0BAC9;--g3:#6B7A8D;
+  --font:'Outfit',sans-serif;
+  --shadow:0 4px 20px rgba(11,29,58,0.10);
+}
+html,body{height:100%;font-family:var(--font);background:#0B1D3A;color:#0B1D3A;overflow:hidden}
+#app{height:100%;display:flex;flex-direction:column;max-width:430px;margin:0 auto;position:relative;overflow:hidden;background:#F7F8FC}
+.screen{flex:1;overflow:hidden;position:relative;background:#F7F8FC}
+
+/* PAGES - todas escondidas por padrão, JS mostra */
+.page{position:absolute;inset:0;overflow-y:auto;flex-direction:column;background:#F7F8FC}
+.content{padding:16px;display:flex;flex-direction:column;gap:14px;padding-bottom:90px}
+
+/* LOGIN - fundo escuro */
+#pg-login{
+  background:linear-gradient(160deg,#0B1D3A 0%,#162D55 55%,#1E3F6F 100%) !important;
+  justify-content:center;
+  padding:32px 24px;
+}
+.l-logo{text-align:center;margin-bottom:36px}
+.l-logo .cross{font-size:48px;display:block;color:#D4A843;margin-bottom:8px}
+.l-logo h1{font-size:32px;font-weight:700;color:#fff;letter-spacing:-0.5px}
+.l-logo p{font-size:13px;color:rgba(255,255,255,0.5);margin-top:4px}
+.l-card{background:rgba(255,255,255,0.09);border:1px solid rgba(255,255,255,0.15);border-radius:20px;padding:26px 22px}
+.fg{margin-bottom:16px}
+.fg label{display:block;font-size:11px;font-weight:600;color:rgba(255,255,255,0.6);margin-bottom:8px;letter-spacing:0.6px;text-transform:uppercase}
+.fi{width:100%;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.18);border-radius:10px;padding:14px 15px;font-size:15px;color:#fff;font-family:var(--font);outline:none;transition:border-color .2s}
+.fi:focus{border-color:#D4A843}
+.fi::placeholder{color:rgba(255,255,255,0.3)}
+.btn-p{width:100%;background:#C0392B;color:#fff;border:none;border-radius:12px;padding:16px;font-size:16px;font-weight:600;font-family:var(--font);cursor:pointer;transition:all .2s;margin-top:4px}
+.btn-p:active{transform:scale(0.97);background:#E74C3C}
+
+/* HEADER */
+.header{background:#0B1D3A;padding:14px 18px 12px;flex-shrink:0;display:flex;align-items:center;justify-content:space-between}
+.header h2{font-size:17px;font-weight:600;color:#fff}
+.header .sub{font-size:11px;color:rgba(255,255,255,0.5);margin-top:1px}
+.back{color:rgba(255,255,255,0.75);cursor:pointer;font-size:24px;padding:2px 8px 2px 0;line-height:1}
+.hdr-left{display:flex;align-items:center}
+.avatar{width:36px;height:36px;border-radius:50%;background:#C0392B;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;cursor:pointer;flex-shrink:0}
+
+/* BOTTOM NAV */
+.bnav{background:#0B1D3A;display:flex;justify-content:space-around;align-items:center;padding:8px 0 max(16px,env(safe-area-inset-bottom,16px));flex-shrink:0;border-top:1px solid rgba(255,255,255,0.08)}
+.ni{display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;padding:5px 10px;border-radius:10px;position:relative}
+.ni .ic{font-size:20px;line-height:1}
+.ni .lb{font-size:10px;font-weight:500;color:rgba(255,255,255,0.45)}
+.ni.active .lb{color:#C0392B}
+.ni .bdot{position:absolute;top:2px;right:6px;width:8px;height:8px;background:#C0392B;border-radius:50%;border:2px solid #0B1D3A}
+
+/* CARDS */
+.card{background:#fff;border-radius:14px;padding:16px;box-shadow:var(--shadow);border:1px solid #E8EBF2}
+.sec-title{font-size:12px;font-weight:600;color:#6B7A8D;text-transform:uppercase;letter-spacing:0.6px;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.sec-title::after{content:'';flex:1;height:1px;background:#E8EBF2}
+
+/* FORM */
+.fl{font-size:12px;font-weight:600;color:#6B7A8D;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px}
+.finp{width:100%;background:#F7F8FC;border:1.5px solid #E8EBF2;border-radius:10px;padding:12px 13px;font-size:14px;color:#0B1D3A;font-family:var(--font);outline:none;transition:border-color .2s;appearance:none;-webkit-appearance:none}
+.finp:focus{border-color:#0B1D3A}
+.finp::placeholder{color:#B0BAC9}
+
+/* STEP BAR */
+.step-bar{display:flex;gap:5px}
+.step{flex:1;height:4px;border-radius:4px;background:#E8EBF2;transition:background .3s}
+.step.done{background:#C0392B}.step.cur{background:#0B1D3A}
+.step-lbl{font-size:12px;color:#6B7A8D;margin-bottom:14px;margin-top:4px}
+
+/* LOUVORES */
+.lv-item{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid #E8EBF2}
+.lv-item:last-child{border-bottom:none}
+.chk{width:22px;height:22px;border-radius:6px;border:2px solid #B0BAC9;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .2s;flex-shrink:0}
+.chk.on{background:#0B1D3A;border-color:#0B1D3A}
+.chk.on::after{content:'✓';color:#fff;font-size:12px;font-weight:700}
+.lv-name{font-size:14px;font-weight:500;color:#0B1D3A}
+
+/* BUTTONS */
+.btn-row{display:flex;gap:10px}
+.btn-o{flex:1;background:transparent;border:1.5px solid #0B1D3A;color:#0B1D3A;border-radius:12px;padding:13px;font-size:14px;font-weight:600;font-family:var(--font);cursor:pointer}
+.btn-r{flex:1;background:#C0392B;border:none;color:#fff;border-radius:12px;padding:13px;font-size:14px;font-weight:600;font-family:var(--font);cursor:pointer;transition:all .2s}
+.btn-r:active{transform:scale(0.97)}
+.btn-full{width:100%;background:#C0392B;border:none;color:#fff;border-radius:12px;padding:14px;font-size:14px;font-weight:600;font-family:var(--font);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px}
+
+/* PRESENÇA */
+.pc{background:#fff;border-radius:12px;padding:13px;border:1px solid #E8EBF2}
+.pc-hdr{font-size:13px;font-weight:600;color:#0B1D3A;margin-bottom:9px}
+.pc-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.pc-f label{font-size:11px;color:#6B7A8D;font-weight:500;display:block;margin-bottom:4px}
+.pc-f input{width:100%;background:#F7F8FC;border:1.5px solid #E8EBF2;border-radius:8px;padding:8px;font-size:18px;font-weight:700;color:#0B1D3A;font-family:var(--font);text-align:center;outline:none;transition:border-color .2s}
+.pc-f input:focus{border-color:#C0392B}
+.total-bar{background:linear-gradient(135deg,#0B1D3A,#1E3F6F);border-radius:12px;padding:14px 16px;display:flex;justify-content:space-between;align-items:center;color:#fff}
+.total-bar .tl{font-size:11px;opacity:.65}
+.total-bar .tn{font-size:24px;font-weight:700}
+.total-bar .tv{font-size:14px;color:#E74C3C;font-weight:700}
+
+/* DASHBOARD */
+.church-sel{background:#fff;border-radius:12px;padding:12px 15px;display:flex;align-items:center;gap:10px;box-shadow:var(--shadow);border:1px solid #E8EBF2}
+.church-sel select{flex:1;border:none;font-family:var(--font);font-size:14px;font-weight:500;color:#0B1D3A;background:transparent;outline:none;cursor:pointer}
+.cdot{width:10px;height:10px;border-radius:50%;background:#C0392B;flex-shrink:0}
+.next-c{background:linear-gradient(135deg,#0B1D3A 0%,#1E3F6F 100%);border-radius:14px;padding:18px;color:#fff;border-left:4px solid #C0392B}
+.next-c .nlbl{font-size:11px;font-weight:600;color:rgba(255,255,255,0.55);text-transform:uppercase;letter-spacing:.6px;margin-bottom:5px}
+.next-c .ndt{font-size:19px;font-weight:700;margin-bottom:3px}
+.next-c .ndt2{font-size:13px;color:rgba(255,255,255,0.65)}
+.bdg{background:#C0392B;color:#fff;font-size:10px;font-weight:600;padding:3px 9px;border-radius:20px;display:inline-block;margin-top:8px}
+.grid-at{display:grid;grid-template-columns:1fr 1fr;gap:11px}
+.at{background:#fff;border-radius:14px;padding:16px 13px;box-shadow:var(--shadow);cursor:pointer;transition:all .2s;border:1px solid #E8EBF2;display:flex;flex-direction:column;gap:7px}
+.at:active{transform:scale(0.96)}
+.at .ati{width:40px;height:40px;border-radius:10px;background:#FDECEA;display:flex;align-items:center;justify-content:center;font-size:18px}
+.at .atn{font-size:13px;font-weight:600;color:#0B1D3A;line-height:1.3}
+.at .atd{font-size:11px;color:#6B7A8D}
+
+/* HISTÓRICO */
+.fchip{background:#fff;border:1.5px solid #E8EBF2;border-radius:20px;padding:6px 14px;font-size:12px;font-weight:500;color:#6B7A8D;cursor:pointer;white-space:nowrap;transition:all .2s;flex-shrink:0}
+.fchip.on{background:#0B1D3A;border-color:#0B1D3A;color:#fff}
+.ccard{background:#fff;border-radius:14px;padding:15px;box-shadow:var(--shadow);border:1px solid #E8EBF2;cursor:pointer;transition:all .2s}
+.ccard:active{transform:scale(0.98)}
+.ccard .ct{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:7px}
+.ccard .cdt{font-size:14px;font-weight:700;color:#0B1D3A}
+.ccard .cch{font-size:12px;color:#6B7A8D;margin-top:2px}
+.ccard .cpr{font-size:13px;color:#0B1D3A;font-weight:500}
+.pbdg{background:#FDECEA;color:#C0392B;font-size:12px;font-weight:700;padding:4px 10px;border-radius:20px}
+
+/* RELATÓRIO */
+.rh{background:linear-gradient(135deg,#0B1D3A 0%,#1E3F6F 100%);border-radius:16px;padding:20px;color:#fff;text-align:center}
+.rh .cross2{font-size:24px;margin-bottom:8px;display:block;color:#D4A843}
+.rh h3{font-size:18px;font-weight:700}
+.rh .rdiv{width:40px;height:3px;background:#C0392B;margin:10px auto}
+.rh .rdt{font-size:13px;opacity:.65}
+.rs{background:#fff;border-radius:14px;padding:15px;border:1px solid #E8EBF2}
+.rst{font-size:11px;font-weight:700;color:#C0392B;text-transform:uppercase;letter-spacing:.8px;margin-bottom:11px;padding-bottom:7px;border-bottom:1px solid #E8EBF2}
+.eg{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.ei{background:#F7F8FC;border-radius:10px;padding:10px;text-align:center}
+.ei .er{font-size:10px;color:#6B7A8D;font-weight:500;text-transform:uppercase}
+.ei .en{font-size:13px;font-weight:600;color:#0B1D3A;margin-top:3px}
+.ptable{width:100%;border-collapse:collapse;font-size:13px}
+.ptable th{background:#F7F8FC;padding:7px 9px;text-align:left;font-weight:600;font-size:11px;color:#6B7A8D;text-transform:uppercase}
+.ptable td{padding:7px 9px;border-bottom:1px solid #E8EBF2;font-weight:500}
+.ptable tr.tot{background:#0B1D3A;color:#fff}
+.ptable tr.tot td{border:none;font-weight:700;padding:9px}
+.pal-box{background:#F7F8FC;border-left:4px solid #C0392B;border-radius:0 10px 10px 0;padding:12px 13px;font-size:14px;color:#0B1D3A;line-height:1.5}
+.ract{display:flex;gap:10px;padding:0 16px 16px}
+.rb{flex:1;padding:14px;border-radius:12px;font-size:14px;font-weight:600;font-family:var(--font);cursor:pointer;border:none;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:6px}
+.rb.pdf{background:#0B1D3A;color:#fff}
+.rb.wpp{background:#25D366;color:#fff}
+.rb:active{transform:scale(0.97)}
+
+/* GRUPOS */
+.gc{background:#fff;border-radius:14px;padding:15px;box-shadow:var(--shadow);border:1px solid #E8EBF2}
+.gt{display:flex;align-items:center;gap:12px;margin-bottom:11px}
+.gav{width:44px;height:44px;border-radius:12px;background:#0B1D3A;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;color:#D4A843;flex-shrink:0}
+.gn{font-size:15px;font-weight:700;color:#0B1D3A}
+.gr{font-size:12px;color:#6B7A8D}
+.gm-count{font-size:12px;color:#0B1D3A;font-weight:500;background:#F7F8FC;border-radius:8px;padding:4px 10px;display:inline-block;margin-bottom:9px}
+.vi{display:flex;align-items:center;gap:9px;padding:7px 0;border-bottom:1px solid #E8EBF2}
+.vi:last-child{border-bottom:none}
+.vd{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.vd.p{background:#F39C12}.vd.c{background:#27AE60}
+.vdt{font-size:13px;color:#0B1D3A;font-weight:500}
+.vth{font-size:12px;color:#6B7A8D}
+.vb{font-size:10px;font-weight:600;padding:3px 8px;border-radius:20px;margin-left:auto;flex-shrink:0}
+.vb.p{background:#FEF9E7;color:#D68910}.vb.c{background:#EAFAF1;color:#1E8449}
+.ag-area{margin-top:10px;background:#F7F8FC;border-radius:10px;padding:13px;flex-direction:column;gap:9px}
+
+/* AVISOS */
+.bbl{padding:11px 15px;border-radius:16px;margin-bottom:10px;max-width:88%;font-size:14px;line-height:1.5}
+.bbl.env{background:#0B1D3A;color:#fff;align-self:flex-end;border-bottom-right-radius:4px}
+.bbl.rec{background:#fff;color:#0B1D3A;border:1px solid #E8EBF2;border-bottom-left-radius:4px;box-shadow:var(--shadow)}
+.bml{font-size:10px;opacity:.55;margin-top:3px}
+.tg{font-size:10px;font-weight:600;padding:2px 8px;border-radius:12px;display:inline-block;margin-bottom:5px}
+.tg.tt{background:#EBF5FB;color:#1A5276}.tg.tg2{background:#F3E5F5;color:#6A0572}.tg.tp{background:#F1F8E9;color:#2E7D32}
+.chat-in{display:flex;gap:8px;padding:10px 16px 16px;background:#fff;border-top:1px solid #E8EBF2;flex-shrink:0}
+.chat-in input{flex:1;background:#F7F8FC;border:1.5px solid #E8EBF2;border-radius:24px;padding:10px 15px;font-size:14px;font-family:var(--font);outline:none}
+.chat-send{width:40px;height:40px;background:#C0392B;border:none;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;font-size:16px;color:#fff}
+
+/* CADASTROS */
+.cad-tabs{display:flex;background:#E8EBF2;border-radius:10px;padding:3px}
+.cad-tab{flex:1;padding:8px;text-align:center;font-size:13px;font-weight:500;color:#6B7A8D;border-radius:8px;cursor:pointer;transition:all .2s}
+.cad-tab.on{background:#fff;color:#0B1D3A;font-weight:600;box-shadow:0 2px 8px rgba(0,0,0,.07)}
+.mi{display:flex;align-items:center;gap:11px;padding:11px 0;border-bottom:1px solid #E8EBF2}
+.mi:last-child{border-bottom:none}
+.ma{width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#0B1D3A,#1E3F6F);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0}
+.mn{font-size:14px;font-weight:600;color:#0B1D3A}
+.mc{font-size:11px;color:#6B7A8D}
+.cb{font-size:10px;font-weight:600;padding:2px 8px;border-radius:12px;margin-left:auto;flex-shrink:0}
+.cb.pastor{background:#EBF5FB;color:#1A5276}.cb.louvor{background:#F3E5F5;color:#6A0572}.cb.mb{background:#E8EBF2;color:#6B7A8D}.cb.adm{background:#FDECEA;color:#C0392B}
+
+/* TOAST */
+.toast{position:fixed;top:20px;left:50%;transform:translateX(-50%) translateY(-100px);z-index:9999;background:#0B1D3A;color:#fff;border-radius:12px;padding:12px 18px;display:flex;align-items:center;gap:9px;box-shadow:0 8px 24px rgba(0,0,0,.3);font-size:13px;font-weight:500;transition:transform .35s cubic-bezier(.34,1.56,.64,1);white-space:nowrap;max-width:90vw}
+.toast.on{transform:translateX(-50%) translateY(0)}
+.tdot{width:8px;height:8px;border-radius:50%;background:#C0392B;flex-shrink:0}
+
+/* MODAL */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:900;display:none;align-items:flex-end;justify-content:center}
+.modal-bg.on{display:flex}
+.modal{background:#fff;border-radius:20px 20px 0 0;padding:24px 20px 36px;width:100%;max-width:430px;max-height:85vh;overflow-y:auto}
+.modal h3{font-size:17px;font-weight:700;color:#0B1D3A;margin-bottom:18px}
+
+/* LOADING */
+#loading{position:fixed;inset:0;background:linear-gradient(160deg,#0B1D3A,#162D55);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;gap:16px}
+#loading .lc{font-size:60px;color:#D4A843}
+#loading p{color:rgba(255,255,255,.6);font-size:14px}
+.spin{width:32px;height:32px;border:3px solid rgba(255,255,255,.2);border-top-color:#C0392B;border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* GUIA SUPER ADMIN */
+#guia-sa{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:8000;display:none;align-items:center;justify-content:center;padding:20px}
+#guia-sa.on{display:flex}
+#guia-sa .guia-box{background:#fff;border-radius:20px;padding:24px;max-width:400px;width:100%;max-height:85vh;overflow-y:auto}
+#guia-sa .guia-box h3{font-size:17px;font-weight:700;color:#0B1D3A;margin-bottom:4px}
+#guia-sa .guia-box p{font-size:13px;color:#6B7A8D;margin-bottom:16px;line-height:1.5}
+#guia-sa .guia-box ol{font-size:13px;color:#0B1D3A;padding-left:18px;display:flex;flex-direction:column;gap:10px;line-height:1.6}
+#guia-sa .guia-box code{background:#F7F8FC;border:1px solid #E8EBF2;border-radius:6px;padding:2px 7px;font-size:12px;color:#C0392B;font-family:monospace;display:inline-block;margin:2px 0}
+</style>
+</head>
+<body>
+
+<!-- LOADING -->
+<div id="loading">
+  <div class="lc">✝</div>
+  <div class="spin"></div>
+  <p>Carregando GDC...</p>
+</div>
+
+<!-- GUIA SUPER ADMIN (aparece se não tiver SA criado) -->
+<div id="guia-sa">
+  <div class="guia-box">
+    <h3>✝ Criar Super Admin</h3>
+    <p>Primeiro acesso! Siga os passos no Supabase para criar o administrador principal:</p>
+    <ol>
+      <li>Acesse <strong>supabase.com</strong> → seu projeto GDC</li>
+      <li>Menu esquerdo → <strong>Authentication</strong> → <strong>Users</strong></li>
+      <li>Clique em <strong>"Add user"</strong> → <strong>"Create new user"</strong></li>
+      <li>Email: <code>superadmin@gdc.app</code><br>Senha: escolha uma senha forte</li>
+      <li>Clique em <strong>"Create user"</strong> e copie o <strong>UUID</strong> gerado</li>
+      <li>Vá em <strong>Table Editor</strong> → tabela <strong>perfis</strong> → <strong>Insert row</strong></li>
+      <li>Preencha: <code>id</code> = UUID copiado, <code>nome_completo</code> = Super Admin, <code>telefone</code> = superadmin, <code>cargo</code> = super_admin, <code>is_admin</code> = true</li>
+      <li>Salve. Depois faça login com o email <code>superadmin@gdc.app</code> e sua senha</li>
+    </ol>
+    <button onclick="document.getElementById('guia-sa').classList.remove('on')" style="margin-top:20px;width:100%;background:#0B1D3A;color:#fff;border:none;border-radius:12px;padding:13px;font-size:14px;font-weight:600;font-family:'Outfit',sans-serif;cursor:pointer">Entendido, fechar</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"><div class="tdot"></div><span id="tmsg">Ok!</span></div>
+
+<div id="app">
+  <div class="screen" id="screen">
+
+    <!-- LOGIN -->
+    <div class="page" id="pg-login" style="background:linear-gradient(160deg,#0B1D3A 0%,#162D55 55%,#1E3F6F 100%);justify-content:center;padding:32px 24px">
+      <div class="l-logo">
+        <span class="cross">✝</span>
+        <h1>GDC</h1>
+        <p>Gestão de Cultos</p>
+      </div>
+      <div class="l-card">
+        <div class="fg">
+          <label>Telefone</label>
+          <input class="fi" type="tel" id="inp-tel" placeholder="(83) 99999-9999">
+        </div>
+        <div class="fg" style="margin-bottom:20px">
+          <label>Senha</label>
+          <input class="fi" type="password" id="inp-senha" placeholder="••••••••">
+        </div>
+        <button class="btn-p" id="btn-login" onclick="doLogin()">Entrar</button>
+        <p style="text-align:center;margin-top:14px;font-size:12px;color:rgba(255,255,255,.4)">Acesso exclusivo para liderança cadastrada</p>
+        <p style="text-align:center;margin-top:8px;font-size:11px;color:rgba(255,255,255,.3);cursor:pointer" onclick="document.getElementById('guia-sa').classList.add('on')">Primeiro acesso? Configurar Super Admin</p>
+      </div>
+    </div>
+
+    <!-- DASHBOARD -->
+    <div class="page" id="pg-dash">
+      <div class="header">
+        <div><h2 id="dash-greeting">Olá ✝</h2><div class="sub" id="dash-church">...</div></div>
+        <div class="avatar" id="dash-av" onclick="doLogout()" title="Sair">SA</div>
+      </div>
+      <div class="content">
+        <div class="church-sel" id="church-sel-wrap" style="display:none">
+          <div class="cdot"></div>
+          <select id="church-sel" onchange="onChurchChange()"></select>
+          <span style="font-size:14px;color:#6B7A8D">▾</span>
+        </div>
+        <div class="next-c">
+          <div class="nlbl">Próximo Culto</div>
+          <div class="ndt" id="dash-next-date">Nenhum culto agendado</div>
+          <div class="ndt2" id="dash-next-info"></div>
+          <div><span class="bdg" id="dash-next-bdg">Igreja</span></div>
+        </div>
+        <div class="sec-title">Ações Rápidas</div>
+        <div class="grid-at">
+          <div class="at" onclick="goPage('pg-preculto')"><div class="ati">📋</div><div class="atn">Pré-Culto</div><div class="atd">Planejar culto</div></div>
+          <div class="at" onclick="goPage('pg-registrar')"><div class="ati">⛪</div><div class="atn">Registrar Culto</div><div class="atd">Presença e registro</div></div>
+          <div class="at" onclick="goPage('pg-historico')"><div class="ati">📊</div><div class="atn">Relatórios</div><div class="atd">Histórico</div></div>
+          <div class="at" onclick="goPage('pg-grupos')"><div class="ati">👥</div><div class="atn">Grupos</div><div class="atd">Células</div></div>
+          <div class="at" onclick="goPage('pg-avisos')"><div class="ati">💬</div><div class="atn">Avisos</div><div class="atd">Chat da igreja</div></div>
+          <div class="at" onclick="goPage('pg-cadastros')"><div class="ati">👤</div><div class="atn">Cadastros</div><div class="atd">Pessoas e igrejas</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PRÉ-CULTO -->
+    <div class="page" id="pg-preculto">
+      <div class="header">
+        <div class="hdr-left">
+          <div class="back" onclick="goPage('pg-dash')">‹</div>
+          <div><h2>Pré-Culto</h2><div class="sub">Planejamento</div></div>
+        </div>
+      </div>
+      <div class="content">
+        <div class="step-bar"><div class="step done"></div><div class="step cur"></div><div class="step"></div></div>
+        <div class="step-lbl">Passo 2 de 3 — Equipe e Louvores</div>
+        <div class="card">
+          <div class="fl">Data do Culto</div>
+          <input class="finp" type="date" id="pc-data">
+        </div>
+        <div class="card">
+          <div class="fl">Igreja</div>
+          <select class="finp" id="pc-igreja" onchange="loadLouvorList()"></select>
+        </div>
+        <div class="card">
+          <div class="fl">Dirigente do Louvor</div>
+          <select class="finp" id="pc-dirigente"><option value="">Selecionar...</option></select>
+        </div>
+        <div class="card">
+          <div class="fl">Pregador</div>
+          <select class="finp" id="pc-pregador"><option value="">Selecionar...</option></select>
+        </div>
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+            <div class="fl" style="margin:0">Louvores</div>
+            <button onclick="openModalLouvor()" style="font-size:11px;background:#FDECEA;color:#C0392B;border:none;border-radius:8px;padding:4px 10px;cursor:pointer;font-family:'Outfit',sans-serif;font-weight:600">+ Gerenciar Banco</button>
+          </div>
+          <div id="pc-louvores-list"><p style="font-size:13px;color:#6B7A8D">Carregando louvores...</p></div>
+          <div style="margin-top:10px;display:flex;gap:8px">
+            <input class="finp" type="text" id="pc-novo-louvor" placeholder="Louvor manual..." style="flex:1">
+            <button onclick="addLouvorManual()" style="background:#0B1D3A;color:#fff;border:none;border-radius:10px;padding:10px 14px;font-size:13px;font-weight:600;cursor:pointer;font-family:'Outfit',sans-serif;flex-shrink:0">+</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="fl">Orientações Espirituais</div>
+          <textarea class="finp" id="pc-orientacoes" style="min-height:90px;resize:none;line-height:1.5" placeholder="Orientações para a equipe..."></textarea>
+        </div>
+        <div class="btn-row">
+          <button class="btn-o" onclick="salvarPreculto(false)">Salvar</button>
+          <button class="btn-r" onclick="salvarPreculto(true)">Próximo ›</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- REGISTRAR CULTO -->
+    <div class="page" id="pg-registrar">
+      <div class="header">
+        <div class="hdr-left">
+          <div class="back" onclick="goPage('pg-preculto')">‹</div>
+          <div><h2>Registrar Culto</h2><div class="sub" id="reg-sub">Registro</div></div>
+        </div>
+      </div>
+      <div class="content">
+        <div class="step-bar"><div class="step done"></div><div class="step done"></div><div class="step cur"></div></div>
+        <div class="step-lbl">Passo 3 de 3 — Presença e Registro</div>
+        <div class="card">
+          <div class="fl" style="margin-bottom:12px">✓ Louvores Ministrados</div>
+          <div id="reg-louvores"><p style="font-size:13px;color:#6B7A8D">Venha pelo Pré-Culto para carregar os louvores.</p></div>
+        </div>
+        <div class="card">
+          <div class="fl" style="margin-bottom:12px">Contagem de Presença</div>
+          <div style="display:flex;flex-direction:column;gap:9px">
+            <div class="pc"><div class="pc-hdr">👶 Crianças</div><div class="pc-row"><div class="pc-f"><label>Igreja</label><input type="number" id="p-cri-ig" value="0" min="0" oninput="calcTotal()"></div><div class="pc-f"><label>Visitante</label><input type="number" id="p-cri-vi" value="0" min="0" oninput="calcTotal()"></div></div></div>
+            <div class="pc"><div class="pc-hdr">🧑‍🤝‍🧑 Intermediários</div><div class="pc-row"><div class="pc-f"><label>Igreja</label><input type="number" id="p-int-ig" value="0" min="0" oninput="calcTotal()"></div><div class="pc-f"><label>Visitante</label><input type="number" id="p-int-vi" value="0" min="0" oninput="calcTotal()"></div></div></div>
+            <div class="pc"><div class="pc-hdr">🧒 Adolescentes</div><div class="pc-row"><div class="pc-f"><label>Igreja</label><input type="number" id="p-ado-ig" value="0" min="0" oninput="calcTotal()"></div><div class="pc-f"><label>Visitante</label><input type="number" id="p-ado-vi" value="0" min="0" oninput="calcTotal()"></div></div></div>
+            <div class="pc"><div class="pc-hdr">👦 Jovens</div><div class="pc-row"><div class="pc-f"><label>Igreja</label><input type="number" id="p-jov-ig" value="0" min="0" oninput="calcTotal()"></div><div class="pc-f"><label>Visitante</label><input type="number" id="p-jov-vi" value="0" min="0" oninput="calcTotal()"></div></div></div>
+            <div class="pc"><div class="pc-hdr">👩 Senhoras</div><div class="pc-row"><div class="pc-f"><label>Igreja</label><input type="number" id="p-sen-ig" value="0" min="0" oninput="calcTotal()"></div><div class="pc-f"><label>Visitante</label><input type="number" id="p-sen-vi" value="0" min="0" oninput="calcTotal()"></div></div></div>
+            <div class="pc"><div class="pc-hdr">👨 Varões</div><div class="pc-row"><div class="pc-f"><label>Igreja</label><input type="number" id="p-var-ig" value="0" min="0" oninput="calcTotal()"></div><div class="pc-f"><label>Visitante</label><input type="number" id="p-var-vi" value="0" min="0" oninput="calcTotal()"></div></div></div>
+            <div class="total-bar"><div><div class="tl">Total Geral</div><div class="tn" id="t-geral">0</div></div><div style="text-align:right"><div class="tl">Visitantes</div><div class="tv" id="t-visit">0</div></div></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="fl">Palavra / Texto Pregado</div>
+          <textarea class="finp" id="reg-palavra" style="min-height:80px;resize:none;line-height:1.5" placeholder="Ex: João 3:16 — ..."></textarea>
+        </div>
+        <div class="card">
+          <div class="fl">Observações</div>
+          <textarea class="finp" id="reg-obs" style="min-height:70px;resize:none;line-height:1.5" placeholder="Observações do culto..."></textarea>
+        </div>
+        <div class="btn-row">
+          <button class="btn-o" onclick="salvarCulto(false)">Salvar Culto</button>
+          <button class="btn-r" onclick="salvarCulto(true)">Ver Relatório</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- RELATÓRIO -->
+    <div class="page" id="pg-relatorio" style="flex-direction:column">
+      <div class="header">
+        <div class="hdr-left">
+          <div class="back" onclick="goPage('pg-historico')">‹</div>
+          <div><h2>Relatório</h2><div class="sub">Culto registrado</div></div>
+        </div>
+      </div>
+      <div style="flex:1;overflow-y:auto">
+        <div id="report-content" style="padding:16px;display:flex;flex-direction:column;gap:14px;padding-bottom:16px"></div>
+      </div>
+      <div class="ract">
+        <button class="rb pdf" onclick="gerarPDF()">📄 PDF / Imprimir</button>
+        <button class="rb wpp" onclick="compartilharWpp()">📲 WhatsApp</button>
+      </div>
+    </div>
+
+    <!-- HISTÓRICO -->
+    <div class="page" id="pg-historico">
+      <div class="header">
+        <div class="hdr-left">
+          <div class="back" onclick="goPage('pg-dash')">‹</div>
+          <div><h2>Histórico</h2><div class="sub">Cultos registrados</div></div>
+        </div>
+      </div>
+      <div class="content">
+        <div style="display:flex;gap:8px;overflow-x:auto;padding-bottom:4px">
+          <div class="fchip on">Todos</div>
+        </div>
+        <div id="hist-list"><p style="font-size:14px;color:#6B7A8D;text-align:center;padding:24px">Carregando...</p></div>
+      </div>
+    </div>
+
+    <!-- GRUPOS -->
+    <div class="page" id="pg-grupos">
+      <div class="header">
+        <div class="hdr-left">
+          <div class="back" onclick="goPage('pg-dash')">‹</div>
+          <div><h2>Grupos</h2><div class="sub">Células</div></div>
+        </div>
+        <button onclick="openModalGrupo()" style="background:#C0392B;color:#fff;border:none;border-radius:8px;padding:6px 12px;font-family:'Outfit',sans-serif;font-size:12px;font-weight:600;cursor:pointer">+ Novo</button>
+      </div>
+      <div class="content" id="grupos-list"><p style="font-size:14px;color:#6B7A8D;text-align:center;padding:24px">Carregando...</p></div>
+    </div>
+
+    <!-- AVISOS -->
+    <div class="page" id="pg-avisos" style="flex-direction:column">
+      <div class="header">
+        <div class="hdr-left">
+          <div class="back" onclick="goPage('pg-dash')">‹</div>
+          <div><h2>Avisos e Chat</h2><div class="sub" id="av-sub">Igreja</div></div>
+        </div>
+      </div>
+      <div style="flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:0" id="avisos-msgs"></div>
+      <div class="chat-in">
+        <input type="text" id="aviso-inp" placeholder="Mensagem para todos..." onkeypress="if(event.key==='Enter')enviarAviso()">
+        <button class="chat-send" onclick="enviarAviso()">➤</button>
+      </div>
+    </div>
+
+    <!-- CADASTROS -->
+    <div class="page" id="pg-cadastros">
+      <div class="header">
+        <div class="hdr-left">
+          <div class="back" onclick="goPage('pg-dash')">‹</div>
+          <div><h2>Cadastros</h2><div class="sub">Pessoas e Igrejas</div></div>
+        </div>
+      </div>
+      <div class="content">
+        <div class="cad-tabs">
+          <div class="cad-tab on" onclick="cadTab(this,'cad-p')">Pessoas</div>
+          <div class="cad-tab" onclick="cadTab(this,'cad-i')">Igrejas</div>
+        </div>
+        <div id="cad-p">
+          <div class="card" id="pessoas-list"><p style="font-size:13px;color:#6B7A8D">Carregando...</p></div>
+          <button class="btn-full" onclick="openModalPessoa()" style="margin-top:10px">+ Cadastrar Pessoa</button>
+        </div>
+        <div id="cad-i" style="display:none">
+          <div class="card" id="igrejas-list"><p style="font-size:13px;color:#6B7A8D">Carregando...</p></div>
+          <button class="btn-full" onclick="openModalIgreja()" style="margin-top:10px">+ Cadastrar Igreja</button>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- end screen -->
+
+  <!-- BOTTOM NAV -->
+  <div class="bnav" id="bnav" style="display:none">
+    <div class="ni active" id="ni-dash" onclick="goPage('pg-dash');setNav('ni-dash')"><span class="ic">🏠</span><span class="lb">Início</span></div>
+    <div class="ni" id="ni-pc" onclick="goPage('pg-preculto');setNav('ni-pc')"><span class="ic">📋</span><span class="lb">Pré-Culto</span></div>
+    <div class="ni" id="ni-hist" onclick="goPage('pg-historico');setNav('ni-hist')"><span class="ic">📊</span><span class="lb">Relatórios</span></div>
+    <div class="ni" id="ni-av" onclick="goPage('pg-avisos');setNav('ni-av')"><span class="ic">💬</span><span class="lb">Avisos</span><div class="bdot"></div></div>
+    <div class="ni" id="ni-gp" onclick="goPage('pg-grupos');setNav('ni-gp')"><span class="ic">👥</span><span class="lb">Grupos</span></div>
+  </div>
+</div>
+
+<!-- MODAIS -->
+<div class="modal-bg" id="modal-louvor">
+  <div class="modal">
+    <h3>Banco de Louvores</h3>
+    <div id="modal-louvor-list" style="max-height:35vh;overflow-y:auto;margin-bottom:14px"></div>
+    <div style="display:flex;gap:8px">
+      <input class="finp" type="text" id="ml-inp" placeholder="Título do louvor..." style="flex:1">
+      <button onclick="addLouvorBanco()" style="background:#C0392B;color:#fff;border:none;border-radius:10px;padding:10px 14px;font-size:13px;font-weight:600;cursor:pointer;font-family:'Outfit',sans-serif;flex-shrink:0">+</button>
+    </div>
+    <button onclick="closeModal('modal-louvor')" style="margin-top:12px;width:100%;background:#0B1D3A;color:#fff;border:none;border-radius:12px;padding:13px;font-size:14px;font-weight:600;font-family:'Outfit',sans-serif;cursor:pointer">Fechar</button>
+  </div>
+</div>
+
+<div class="modal-bg" id="modal-pessoa">
+  <div class="modal">
+    <h3>Cadastrar Pessoa</h3>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <div><div class="fl">Nome Completo *</div><input class="finp" id="mp-nome" type="text" placeholder="Nome completo"></div>
+      <div><div class="fl">Telefone (usado no login) *</div><input class="finp" id="mp-tel" type="tel" placeholder="83999999999 (só números)"></div>
+      <div><div class="fl">Senha *</div><input class="finp" id="mp-senha" type="password" placeholder="Mínimo 6 caracteres"></div>
+      <div><div class="fl">Cargo</div>
+        <select class="finp" id="mp-cargo">
+          <option value="pastor">Pastor</option>
+          <option value="ungido">Ungido</option>
+          <option value="diacono">Diácono</option>
+          <option value="obreiro">Obreiro</option>
+          <option value="secretario">Secretário(a)</option>
+          <option value="louvor">Grupo de Louvor</option>
+          <option value="membro">Membro</option>
+        </select>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;padding:10px 0">
+        <input type="checkbox" id="mp-admin" style="width:18px;height:18px;cursor:pointer">
+        <label for="mp-admin" style="font-size:14px;font-weight:500;color:#0B1D3A;cursor:pointer">É administrador?</label>
+      </div>
+    </div>
+    <div class="btn-row" style="margin-top:14px">
+      <button class="btn-o" onclick="closeModal('modal-pessoa')">Cancelar</button>
+      <button class="btn-r" onclick="cadastrarPessoa()">Cadastrar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-bg" id="modal-igreja">
+  <div class="modal">
+    <h3>Cadastrar Igreja</h3>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <div><div class="fl">Nome da Igreja *</div><input class="finp" id="mi-nome" type="text" placeholder="Ex: Igreja Central Heliópolis"></div>
+      <div><div class="fl">Endereço</div><input class="finp" id="mi-end" type="text" placeholder="Rua, número, bairro"></div>
+      <div><div class="fl">CNPJ (opcional)</div><input class="finp" id="mi-cnpj" type="text" placeholder="00.000.000/0000-00"></div>
+    </div>
+    <div class="btn-row" style="margin-top:14px">
+      <button class="btn-o" onclick="closeModal('modal-igreja')">Cancelar</button>
+      <button class="btn-r" onclick="cadastrarIgreja()">Cadastrar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-bg" id="modal-grupo">
+  <div class="modal">
+    <h3>Novo Grupo</h3>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <div><div class="fl">Nome do Grupo *</div><input class="finp" id="mg-nome" type="text" placeholder="Ex: Grupo Alpha"></div>
+    </div>
+    <div class="btn-row" style="margin-top:14px">
+      <button class="btn-o" onclick="closeModal('modal-grupo')">Cancelar</button>
+      <button class="btn-r" onclick="cadastrarGrupo()">Criar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// SUPABASE
+// ============================================================
+const SURL = 'https://ikyhahqhefdpgyhlentg.supabase.co';
+const SKEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlreWhhaHFoZWZkcGd5aGxlbnRnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUyODE0NjEsImV4cCI6MjA5MDg1NzQ2MX0.wudFxDvHe8Np7SRZNF3QDal8-aa-SfmQNVYYT2-izOM';
+const sb = supabase.createClient(SURL, SKEY);
+
+// ============================================================
+// STATE
+// ============================================================
+let currentUser = null;
+let currentProfile = null;
+let currentIgrejas = [];
+let currentIgrejaId = null;
+let pcData = {};
+let cultoAtual = null;
+let relatorioAtual = null;
+
+// ============================================================
+// BOOT
+// ============================================================
+window.addEventListener('load', async () => {
+  // Força login page visível com fundo correto ANTES de qualquer check
+  showRawPage('pg-login');
+  document.getElementById('bnav').style.display = 'none';
+
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    if (session) {
+      currentUser = session.user;
+      await loadProfile();
+      if (currentProfile) {
+        showDash();
+      }
+    }
+  } catch(e) {
+    console.error('Boot error:', e);
+  }
+
+  document.getElementById('loading').style.display = 'none';
+
+  // Set today
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('pc-data').value = today;
+});
+
+// ============================================================
+// NAVIGATION
+// ============================================================
+function showRawPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.style.display = 'none');
+  const p = document.getElementById(id);
+  if (p) p.style.display = 'flex';
+}
+
+function goPage(id) {
+  showRawPage(id);
+  const isLogin = id === 'pg-login';
+  document.getElementById('bnav').style.display = isLogin ? 'none' : 'flex';
+  // Load data
+  if (id === 'pg-preculto') loadPrecultoData();
+  if (id === 'pg-historico') loadHistorico();
+  if (id === 'pg-grupos') loadGrupos();
+  if (id === 'pg-avisos') loadAvisos();
+  if (id === 'pg-cadastros') loadCadastros();
+  if (id === 'pg-registrar') loadRegistrar();
+}
+
+function setNav(id) {
+  document.querySelectorAll('.ni').forEach(n => n.classList.remove('active'));
+  const el = document.getElementById(id);
+  if (el) el.classList.add('active');
+}
+
+// ============================================================
+// AUTH
+// ============================================================
+async function doLogin() {
+  const telRaw = document.getElementById('inp-tel').value.trim();
+  const senha = document.getElementById('inp-senha').value;
+  if (!telRaw || !senha) { showToast('Preencha telefone e senha'); return; }
+
+  const btn = document.getElementById('btn-login');
+  btn.textContent = 'Entrando...';
+  btn.disabled = true;
+
+  // Tenta como Super Admin (email direto)
+  let user = null;
+  let isSA = false;
+
+  // Se digitou "superadmin" ou email completo
+  if (telRaw === 'superadmin' || telRaw.includes('@')) {
+    const email = telRaw.includes('@') ? telRaw : 'superadmin@gdc.app';
+    const { data, error } = await sb.auth.signInWithPassword({ email, password: senha });
+    if (!error) { user = data.user; isSA = true; }
+  }
+
+  // Tenta como liderança (telefone@gdc.app)
+  if (!user) {
+    const tel = telRaw.replace(/\D/g, '');
+    const email = tel + '@gdc.app';
+    const { data, error } = await sb.auth.signInWithPassword({ email, password: senha });
+    if (!error) { user = data.user; }
+  }
+
+  btn.textContent = 'Entrar';
+  btn.disabled = false;
+
+  if (!user) { showToast('Telefone ou senha incorretos'); return; }
+
+  currentUser = user;
+  await loadProfile();
+  if (!currentProfile) {
+    showToast('Perfil não encontrado. Verifique o cadastro no Supabase.');
+    await sb.auth.signOut();
+    return;
+  }
+  showDash();
+}
+
+async function doLogout() {
+  await sb.auth.signOut();
+  currentUser = null; currentProfile = null;
+  currentIgrejas = []; currentIgrejaId = null;
+  showRawPage('pg-login');
+  document.getElementById('bnav').style.display = 'none';
+  showToast('Sessão encerrada');
+}
+
+// ============================================================
+// PROFILE & IGREJAS
+// ============================================================
+async function loadProfile() {
+  if (!currentUser) return;
+  const { data } = await sb.from('perfis').select('*').eq('id', currentUser.id).single();
+  currentProfile = data;
+  if (!data) return;
+
+  if (data.cargo === 'super_admin') {
+    const { data: ig } = await sb.from('igrejas').select('*').order('nome');
+    currentIgrejas = ig || [];
+  } else {
+    const { data: pi } = await sb.from('perfis_igrejas')
+      .select('igrejas(*)')
+      .eq('perfil_id', currentUser.id);
+    currentIgrejas = (pi || []).map(r => r.igrejas).filter(Boolean);
+  }
+  if (currentIgrejas.length > 0) currentIgrejaId = currentIgrejas[0].id;
+}
+
+// ============================================================
+// DASHBOARD
+// ============================================================
+function showDash() {
+  if (!currentProfile) return;
+  const nome = (currentProfile.nome_completo || '').split(' ')[0] || 'Usuário';
+  document.getElementById('dash-greeting').textContent = 'Olá, ' + nome + ' ✝';
+  const ig = currentIgrejas.find(i => i.id === currentIgrejaId);
+  document.getElementById('dash-church').textContent = ig?.nome || 'Sem igreja vinculada';
+  const av = (currentProfile.nome_completo || '??').split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase();
+  document.getElementById('dash-av').textContent = av;
+
+  // Church selector
+  if (currentIgrejas.length > 1) {
+    const sel = document.getElementById('church-sel');
+    sel.innerHTML = currentIgrejas.map(i => `<option value="${i.id}">${i.nome}</option>`).join('');
+    sel.value = currentIgrejaId || '';
+    document.getElementById('church-sel-wrap').style.display = 'flex';
+  }
+
+  goPage('pg-dash');
+  setNav('ni-dash');
+}
+
+function onChurchChange() {
+  currentIgrejaId = document.getElementById('church-sel').value;
+  const ig = currentIgrejas.find(i => i.id === currentIgrejaId);
+  document.getElementById('dash-church').textContent = ig?.nome || '';
+}
+
+// ============================================================
+// PRÉ-CULTO
+// ============================================================
+async function loadPrecultoData() {
+  // Igrejas
+  const pcIg = document.getElementById('pc-igreja');
+  pcIg.innerHTML = currentIgrejas.map(i => `<option value="${i.id}">${i.nome}</option>`).join('');
+  if (currentIgrejaId) pcIg.value = currentIgrejaId;
+
+  // Liderança (sem super_admin)
+  const { data: lideres } = await sb.from('perfis')
+    .select('id, nome_completo, cargo')
+    .in('cargo', ['pastor', 'ungido', 'diacono', 'obreiro'])
+    .order('nome_completo');
+
+  const opts = (lideres || []).map(l => `<option value="${l.id}">${l.nome_completo} (${l.cargo})</option>`).join('');
+  document.getElementById('pc-dirigente').innerHTML = '<option value="">Selecionar...</option>' + opts;
+  document.getElementById('pc-pregador').innerHTML = '<option value="">Selecionar...</option>' + opts;
+
+  loadLouvorList();
+}
+
+async function loadLouvorList() {
+  const igId = document.getElementById('pc-igreja')?.value || currentIgrejaId;
+  if (!igId) return;
+  const { data } = await sb.from('louvores_banco').select('*').eq('igreja_id', igId).order('titulo');
+  const list = document.getElementById('pc-louvores-list');
+  if (!data || data.length === 0) {
+    list.innerHTML = '<p style="font-size:13px;color:#6B7A8D">Nenhum louvor cadastrado. Adicione pelo botão "Gerenciar Banco" ou manualmente abaixo.</p>';
+    return;
+  }
+  list.innerHTML = data.map(l => `
+    <div class="lv-item">
+      <div class="chk" onclick="this.classList.toggle('on')" data-id="${l.id}"></div>
+      <span class="lv-name">${l.titulo}</span>
+    </div>`).join('');
+}
+
+function addLouvorManual() {
+  const inp = document.getElementById('pc-novo-louvor');
+  const txt = inp.value.trim();
+  if (!txt) { showToast('Digite o título do louvor'); return; }
+  const list = document.getElementById('pc-louvores-list');
+  const div = document.createElement('div');
+  div.className = 'lv-item';
+  div.innerHTML = `<div class="chk on" onclick="this.classList.toggle('on')" data-extra="${txt}"></div><span class="lv-name">${txt}</span>`;
+  list.appendChild(div);
+  inp.value = '';
+  showToast('Louvor adicionado à lista');
+}
+
+async function salvarPreculto(avancar) {
+  const data = document.getElementById('pc-data').value;
+  const igId = document.getElementById('pc-igreja').value;
+  const dir = document.getElementById('pc-dirigente').value;
+  const preg = document.getElementById('pc-pregador').value;
+  const ori = document.getElementById('pc-orientacoes').value;
+  if (!data) { showToast('Selecione a data do culto'); return; }
+
+  const chks = document.querySelectorAll('#pc-louvores-list .chk.on');
+  const sel = [...chks].filter(c => c.dataset.id).map(c => c.dataset.id);
+  const extras = [...chks].filter(c => c.dataset.extra).map(c => c.dataset.extra);
+
+  pcData = {
+    data: data + 'T19:00:00',
+    igreja_id: igId,
+    dirigente_id: dir || null,
+    pregador_id: preg || null,
+    orientacoes_espirituais: ori,
+    louvores_selecionados: sel,
+    louvores_extras: extras,
+    status: 'rascunho',
+    criado_por: currentUser.id
+  };
+
+  const { data: culto, error } = await sb.from('cultos').insert([pcData]).select().single();
+  if (error) { showToast('Erro ao salvar: ' + error.message); return; }
+  cultoAtual = culto;
+  showToast('Pré-culto salvo!');
+  if (avancar) goPage('pg-registrar');
+}
+
+// ============================================================
+// REGISTRAR CULTO
+// ============================================================
+function loadRegistrar() {
+  const div = document.getElementById('reg-louvores');
+  const extras = pcData.louvores_extras || [];
+  if (extras.length === 0) {
+    div.innerHTML = '<p style="font-size:13px;color:#6B7A8D">Venha pelo Pré-Culto para carregar os louvores, ou adicione aqui:</p>';
+  } else {
+    div.innerHTML = extras.map(t => `
+      <div class="lv-item">
+        <div class="chk on" onclick="this.classList.toggle('on')"></div>
+        <span class="lv-name">${t}</span>
+      </div>`).join('');
+  }
+  // Também carrega louvores do banco selecionados
+  if (pcData.louvores_selecionados?.length > 0) {
+    loadLouvorNomes(pcData.louvores_selecionados);
+  }
+}
+
+async function loadLouvorNomes(ids) {
+  const { data } = await sb.from('louvores_banco').select('titulo').in('id', ids);
+  if (!data) return;
+  const div = document.getElementById('reg-louvores');
+  const extra = div.innerHTML === '<p style="font-size:13px;color:#6B7A8D">Venha pelo Pré-Culto para carregar os louvores, ou adicione aqui:</p>' ? '' : div.innerHTML;
+  div.innerHTML = data.map(l => `
+    <div class="lv-item">
+      <div class="chk on" onclick="this.classList.toggle('on')"></div>
+      <span class="lv-name">${l.titulo}</span>
+    </div>`).join('') + extra;
+}
+
+function calcTotal() {
+  const ids = ['cri','int','ado','jov','sen','var'];
+  let total = 0, visit = 0;
+  ids.forEach(c => {
+    const ig = parseInt(document.getElementById('p-'+c+'-ig')?.value) || 0;
+    const vi = parseInt(document.getElementById('p-'+c+'-vi')?.value) || 0;
+    total += ig + vi; visit += vi;
+  });
+  document.getElementById('t-geral').textContent = total;
+  document.getElementById('t-visit').textContent = visit;
+}
+
+async function salvarCulto(verRel) {
+  const presenca = {
+    criancas:      { igreja: +document.getElementById('p-cri-ig').value||0, visitante: +document.getElementById('p-cri-vi').value||0 },
+    intermediarios:{ igreja: +document.getElementById('p-int-ig').value||0, visitante: +document.getElementById('p-int-vi').value||0 },
+    adolescentes:  { igreja: +document.getElementById('p-ado-ig').value||0, visitante: +document.getElementById('p-ado-vi').value||0 },
+    jovens:        { igreja: +document.getElementById('p-jov-ig').value||0, visitante: +document.getElementById('p-jov-vi').value||0 },
+    senhoras:      { igreja: +document.getElementById('p-sen-ig').value||0, visitante: +document.getElementById('p-sen-vi').value||0 },
+    varoes:        { igreja: +document.getElementById('p-var-ig').value||0, visitante: +document.getElementById('p-var-vi').value||0 }
+  };
+  const palavra = document.getElementById('reg-palavra').value;
+  const obs = document.getElementById('reg-obs').value;
+  const louvCheck = [...document.querySelectorAll('#reg-louvores .chk.on')]
+    .map(c => c.nextElementSibling?.textContent || '').filter(Boolean);
+
+  const payload = { presenca, palavra_pregada: palavra, observacoes: obs, status: 'realizado', louvores_extras: louvCheck };
+
+  let error;
+  if (cultoAtual?.id) {
+    ({ error } = await sb.from('cultos').update(payload).eq('id', cultoAtual.id));
+    cultoAtual = { ...cultoAtual, ...payload };
+  } else {
+    const { data: c, error: e } = await sb.from('cultos')
+      .insert([{ ...pcData, ...payload }]).select().single();
+    error = e; cultoAtual = c;
+  }
+  if (error) { showToast('Erro: ' + error.message); return; }
+  showToast('Culto salvo com sucesso!');
+  if (verRel) { relatorioAtual = cultoAtual; await renderRelatorio(cultoAtual); goPage('pg-relatorio'); }
+}
+
+// ============================================================
+// RELATÓRIO
+// ============================================================
+async function renderRelatorio(culto) {
+  if (!culto) return;
+  let dirigente = '—', pregador = '—', igNome = '—';
+
+  if (culto.dirigente_id) {
+    const { data } = await sb.from('perfis').select('nome_completo').eq('id', culto.dirigente_id).single();
+    dirigente = data?.nome_completo || '—';
+  }
+  if (culto.pregador_id) {
+    const { data } = await sb.from('perfis').select('nome_completo').eq('id', culto.pregador_id).single();
+    pregador = data?.nome_completo || '—';
+  }
+  if (culto.igreja_id) {
+    const { data } = await sb.from('igrejas').select('nome').eq('id', culto.igreja_id).single();
+    igNome = data?.nome || '—';
+  }
+
+  const dt = culto.data
+    ? new Date(culto.data).toLocaleDateString('pt-BR', { weekday:'long', day:'2-digit', month:'long', year:'numeric' })
+    : '—';
+
+  const p = culto.presenca || {};
+  const classes = [
+    { k:'criancas',       n:'Crianças' },
+    { k:'intermediarios', n:'Intermediários' },
+    { k:'adolescentes',   n:'Adolescentes' },
+    { k:'jovens',         n:'Jovens' },
+    { k:'senhoras',       n:'Senhoras' },
+    { k:'varoes',         n:'Varões' }
+  ];
+  let totalIg = 0, totalVi = 0;
+  const rows = classes.map(c => {
+    const ig = p[c.k]?.igreja || 0, vi = p[c.k]?.visitante || 0;
+    totalIg += ig; totalVi += vi;
+    return `<tr><td>${c.n}</td><td>${ig}</td><td>${vi}</td></tr>`;
+  }).join('');
+
+  const louvores = (culto.louvores_extras || []).length > 0
+    ? (culto.louvores_extras || []).map(l =>
+        `<div style="display:flex;align-items:center;gap:8px;font-size:14px;margin-bottom:6px">
+           <span style="color:#C0392B;font-weight:700">✓</span>${l}
+         </div>`).join('')
+    : '<p style="font-size:13px;color:#6B7A8D">Não registrado</p>';
+
+  document.getElementById('report-content').innerHTML = `
+    <div class="rh">
+      <span class="cross2">✝</span>
+      <h3>${igNome}</h3>
+      <div class="rdiv"></div>
+      <div class="rdt">${dt}</div>
+    </div>
+    <div class="rs">
+      <div class="rst">Equipe do Culto</div>
+      <div class="eg">
+        <div class="ei"><div class="er">Dirigente</div><div class="en">${dirigente}</div></div>
+        <div class="ei"><div class="er">Pregador</div><div class="en">${pregador}</div></div>
+      </div>
+    </div>
+    <div class="rs">
+      <div class="rst">Louvores Ministrados</div>
+      ${louvores}
+    </div>
+    <div class="rs">
+      <div class="rst">Presença por Classe</div>
+      <table class="ptable">
+        <thead><tr><th>Classe</th><th>Igreja</th><th>Visitante</th></tr></thead>
+        <tbody>${rows}<tr class="tot"><td>TOTAL</td><td>${totalIg}</td><td style="color:#E74C3C">${totalVi}</td></tr></tbody>
+      </table>
+      <div style="margin-top:10px;font-size:13px;font-weight:700;color:#0B1D3A;text-align:right">
+        Total Geral: <span style="color:#C0392B;font-size:16px">${totalIg + totalVi}</span> pessoas
+      </div>
+    </div>
+    ${culto.palavra_pregada ? `<div class="rs"><div class="rst">Palavra Pregada</div><div class="pal-box">${culto.palavra_pregada}</div></div>` : ''}
+    ${culto.orientacoes_espirituais ? `<div class="rs"><div class="rst">Orientações Espirituais</div><p style="font-size:14px;line-height:1.6;color:#0B1D3A">${culto.orientacoes_espirituais}</p></div>` : ''}
+    ${culto.observacoes ? `<div class="rs"><div class="rst">Observações</div><p style="font-size:14px;line-height:1.6;color:#0B1D3A">${culto.observacoes}</p></div>` : ''}
+    <div style="text-align:center;font-size:11px;color:#6B7A8D;padding-bottom:4px">
+      Relatório gerado pelo GDC – Gestão de Cultos · ${new Date().toLocaleDateString('pt-BR')}
+    </div>`;
+}
+
+function gerarPDF() {
+  showToast('Gerando PDF...');
+  const el = document.getElementById('report-content');
+  const opt = {
+    margin: [12, 12],
+    filename: 'relatorio-culto-gdc.pdf',
+    image: { type: 'jpeg', quality: 0.97 },
+    html2canvas: { scale: 2, useCORS: true },
+    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+  };
+  html2pdf().set(opt).from(el).save();
+}
+
+function compartilharWpp() {
+  if (!relatorioAtual) return;
+  const p = relatorioAtual.presenca || {};
+  const total = Object.values(p).reduce((s, c) => s + (c.igreja||0) + (c.visitante||0), 0);
+  const dt = relatorioAtual.data ? new Date(relatorioAtual.data).toLocaleDateString('pt-BR') : '';
+  const txt = encodeURIComponent(
+    `✝ *GDC – Relatório de Culto*\n📅 ${dt}\n👥 Total: ${total} pessoas\n\nGerado pelo app GDC – Gestão de Cultos`
+  );
+  window.open('https://wa.me/?text=' + txt, '_blank');
+}
+
+// ============================================================
+// HISTÓRICO
+// ============================================================
+async function loadHistorico() {
+  if (!currentIgrejaId) return;
+  const { data } = await sb.from('cultos')
+    .select('id, data, presenca, palavra_pregada, observacoes, louvores_extras, igreja_id, dirigente_id, pregador_id, igrejas(nome)')
+    .eq('status', 'realizado')
+    .eq('igreja_id', currentIgrejaId)
+    .order('data', { ascending: false });
+
+  const list = document.getElementById('hist-list');
+  if (!data || data.length === 0) {
+    list.innerHTML = '<p style="font-size:14px;color:#6B7A8D;text-align:center;padding:24px">Nenhum culto registrado ainda.</p>';
+    return;
+  }
+
+  // Load pregador names
+  const pregIds = [...new Set(data.filter(c => c.pregador_id).map(c => c.pregador_id))];
+  let pregMap = {};
+  if (pregIds.length > 0) {
+    const { data: ps } = await sb.from('perfis').select('id, nome_completo').in('id', pregIds);
+    (ps || []).forEach(p => { pregMap[p.id] = p.nome_completo; });
+  }
+
+  list.innerHTML = data.map(c => {
+    const total = Object.values(c.presenca || {}).reduce((s, x) => s + (x.igreja||0) + (x.visitante||0), 0);
+    const dt = c.data ? new Date(c.data).toLocaleDateString('pt-BR', { weekday:'short', day:'2-digit', month:'short', year:'numeric' }) : '—';
+    const preg = c.pregador_id ? (pregMap[c.pregador_id] || '—') : '—';
+    return `<div class="ccard" onclick="abrirRelatorio('${c.id}')">
+      <div class="ct">
+        <div><div class="cdt">${dt}</div><div class="cch">${c.igrejas?.nome || ''}</div></div>
+        <div class="pbdg">${total} pessoas</div>
+      </div>
+      <div class="cpr">Pregador: ${preg}</div>
+    </div>`;
+  }).join('');
+}
+
+async function abrirRelatorio(id) {
+  showToast('Carregando relatório...');
+  const { data } = await sb.from('cultos').select('*').eq('id', id).single();
+  if (!data) { showToast('Culto não encontrado'); return; }
+  relatorioAtual = data;
+  await renderRelatorio(data);
+  goPage('pg-relatorio');
+}
+
+// ============================================================
+// GRUPOS
+// ============================================================
+async function loadGrupos() {
+  if (!currentIgrejaId) return;
+  const { data } = await sb.from('grupos')
+    .select('*, perfis(nome_completo)')
+    .eq('igreja_id', currentIgrejaId)
+    .order('nome_grupo');
+
+  const div = document.getElementById('grupos-list');
+  if (!data || data.length === 0) {
+    div.innerHTML = '<p style="font-size:14px;color:#6B7A8D;text-align:center;padding:24px">Nenhum grupo cadastrado ainda.</p>';
+    return;
+  }
+
+  const colors = ['#0B1D3A','#C0392B','#1E3F6F','#D4A843'];
+  div.innerHTML = data.map((g, i) => {
+    const letra = (g.nome_grupo || 'G')[0].toUpperCase();
+    return `<div class="gc">
+      <div class="gt">
+        <div class="gav" style="background:${colors[i % 4]}">${letra}</div>
+        <div><div class="gn">${g.nome_grupo}</div><div class="gr">Resp: ${g.perfis?.nome_completo || '—'}</div></div>
+      </div>
+      <div class="gm-count" id="count-${g.id}">👥 Carregando...</div>
+      <div class="sec-title" style="margin-bottom:9px">Visitas Agendadas</div>
+      <div id="vis-${g.id}"><p style="font-size:12px;color:#6B7A8D">Carregando...</p></div>
+      <div class="ag-area" id="ag-${g.id}" style="display:none">
+        <div><div class="fl">Data da Visita</div><input type="date" class="finp" id="ag-dt-${g.id}" style="font-size:13px"></div>
+        <div><div class="fl">Horário</div><input type="time" class="finp" id="ag-tm-${g.id}" style="font-size:13px"></div>
+        <div class="btn-row">
+          <button class="btn-o" style="font-size:13px;padding:10px" onclick="toggleAg('${g.id}')">Cancelar</button>
+          <button class="btn-r" style="font-size:13px;padding:10px" onclick="agendarVisita('${g.id}')">Confirmar</button>
+        </div>
+      </div>
+      <button onclick="toggleAg('${g.id}')" id="btn-ag-${g.id}"
+        style="margin-top:11px;width:100%;background:transparent;border:1.5px solid #0B1D3A;color:#0B1D3A;border-radius:10px;padding:10px;font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;cursor:pointer">
+        + Agendar Visita
+      </button>
+    </div>`;
+  }).join('');
+
+  data.forEach(g => { loadVisitas(g.id); loadMembrosCount(g.id); });
+}
+
+async function loadMembrosCount(grupoId) {
+  const { count } = await sb.from('grupo_membros').select('*', { count: 'exact', head: true }).eq('grupo_id', grupoId);
+  const el = document.getElementById('count-' + grupoId);
+  if (el) el.textContent = `👥 ${count || 0} membros`;
+}
+
+async function loadVisitas(grupoId) {
+  const { data } = await sb.from('visitas').select('*').eq('grupo_id', grupoId).order('data_visita');
+  const div = document.getElementById('vis-' + grupoId);
+  if (!div) return;
+  if (!data || data.length === 0) {
+    div.innerHTML = '<p style="font-size:12px;color:#6B7A8D">Nenhuma visita agendada.</p>';
+    return;
+  }
+  div.innerHTML = data.map(v => `
+    <div class="vi">
+      <div class="vd ${v.status === 'confirmada' ? 'c' : 'p'}"></div>
+      <div>
+        <div class="vdt">${new Date(v.data_visita + 'T00:00:00').toLocaleDateString('pt-BR')}</div>
+        <div class="vth">${(v.horario_visita || '').substring(0, 5)}</div>
+      </div>
+      <div class="vb ${v.status === 'confirmada' ? 'c' : 'p'}">${v.status === 'confirmada' ? 'Confirmada' : 'Pendente'}</div>
+      ${v.status === 'pendente' ? `<button onclick="confirmarVisita('${v.id}','${grupoId}')"
+        style="font-size:10px;background:#EAFAF1;color:#1E8449;border:none;border-radius:6px;padding:4px 8px;cursor:pointer;font-family:'Outfit',sans-serif;font-weight:600">✓ Feita</button>` : ''}
+    </div>`).join('');
+}
+
+function toggleAg(id) {
+  const area = document.getElementById('ag-' + id);
+  const btn = document.getElementById('btn-ag-' + id);
+  if (area.style.display === 'none' || !area.style.display) {
+    area.style.display = 'flex';
+    area.style.flexDirection = 'column';
+    btn.style.display = 'none';
+  } else {
+    area.style.display = 'none';
+    btn.style.display = 'block';
+  }
+}
+
+async function agendarVisita(grupoId) {
+  const dt = document.getElementById('ag-dt-' + grupoId).value;
+  const tm = document.getElementById('ag-tm-' + grupoId).value;
+  if (!dt || !tm) { showToast('Preencha data e horário'); return; }
+  const { error } = await sb.from('visitas').insert([{ grupo_id: grupoId, data_visita: dt, horario_visita: tm, status: 'pendente' }]);
+  if (error) { showToast('Erro: ' + error.message); return; }
+  showToast('Visita agendada!');
+  toggleAg(grupoId);
+  loadVisitas(grupoId);
+}
+
+async function confirmarVisita(id, grupoId) {
+  await sb.from('visitas').update({ status: 'confirmada' }).eq('id', id);
+  showToast('Visita confirmada!');
+  loadVisitas(grupoId);
+}
+
+// ============================================================
+// AVISOS
+// ============================================================
+async function loadAvisos() {
+  if (!currentIgrejaId) return;
+  const ig = currentIgrejas.find(i => i.id === currentIgrejaId);
+  document.getElementById('av-sub').textContent = ig?.nome || '';
+  const { data } = await sb.from('avisos')
+    .select('*, perfis(nome_completo)')
+    .eq('igreja_id', currentIgrejaId)
+    .order('created_at');
+  renderAvisos(data || []);
+}
+
+function renderAvisos(msgs) {
+  const div = document.getElementById('avisos-msgs');
+  if (msgs.length === 0) {
+    div.innerHTML = '<p style="font-size:14px;color:#6B7A8D;text-align:center;padding:24px 0">Nenhum aviso ainda.</p>';
+    return;
+  }
+  div.innerHTML = msgs.map(m => {
+    const meu = m.remetente_id === currentUser?.id;
+    const tag = m.tipo === 'todos' ? '<span class="tg tt">Para: Todos</span>'
+      : m.tipo === 'grupo' ? '<span class="tg tg2">Para: Grupo</span>'
+      : '<span class="tg tp">Mensagem direta</span>';
+    const dt = new Date(m.created_at).toLocaleString('pt-BR', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
+    return `<div style="display:flex;justify-content:${meu ? 'flex-end' : 'flex-start'}">
+      <div class="bbl ${meu ? 'env' : 'rec'}">
+        <div>${tag}</div>${m.mensagem}
+        <div class="bml">${m.perfis?.nome_completo || ''} · ${dt}</div>
+      </div>
+    </div>`;
+  }).join('');
+  div.scrollTop = div.scrollHeight;
+}
+
+async function enviarAviso() {
+  const inp = document.getElementById('aviso-inp');
+  const msg = inp.value.trim();
+  if (!msg || !currentIgrejaId) return;
+  const { error } = await sb.from('avisos').insert([{ igreja_id: currentIgrejaId, remetente_id: currentUser.id, tipo: 'todos', mensagem: msg }]);
+  if (error) { showToast('Erro: ' + error.message); return; }
+  inp.value = '';
+  loadAvisos();
+}
+
+// ============================================================
+// CADASTROS
+// ============================================================
+async function loadCadastros() {
+  // Pessoas
+  let q = sb.from('perfis').select('*').order('nome_completo');
+  if (currentProfile?.cargo !== 'super_admin') q = q.neq('cargo', 'super_admin');
+  const { data: ps } = await q;
+  const pl = document.getElementById('pessoas-list');
+  pl.innerHTML = (ps || []).map(p => {
+    const ini = (p.nome_completo || '?').split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase();
+    const cbMap = { pastor:'pastor', ungido:'pastor', diacono:'louvor', obreiro:'mb', secretario:'mb', louvor:'louvor', membro:'mb', super_admin:'adm' };
+    return `<div class="mi">
+      <div class="ma">${ini}</div>
+      <div style="flex:1"><div class="mn">${p.nome_completo}</div><div class="mc">${p.cargo || ''} · ${p.telefone || ''}</div></div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px">
+        <div class="cb ${cbMap[p.cargo] || 'mb'}">${p.cargo}</div>
+        ${p.is_admin ? '<div class="cb adm">Admin</div>' : ''}
+      </div>
+    </div>`;
+  }).join('') || '<p style="font-size:13px;color:#6B7A8D">Nenhuma pessoa cadastrada.</p>';
+
+  // Igrejas
+  const { data: igs } = await sb.from('igrejas').select('*').order('nome');
+  const il = document.getElementById('igrejas-list');
+  il.innerHTML = (igs || []).map(ig => {
+    const ini = (ig.nome || 'I').split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase();
+    return `<div class="mi">
+      <div class="ma" style="border-radius:10px;background:#1E3F6F">${ini}</div>
+      <div style="flex:1"><div class="mn">${ig.nome}</div><div class="mc">${ig.endereco || 'Sem endereço'}</div></div>
+    </div>`;
+  }).join('') || '<p style="font-size:13px;color:#6B7A8D">Nenhuma igreja cadastrada.</p>';
+}
+
+function cadTab(el, id) {
+  document.querySelectorAll('.cad-tab').forEach(t => t.classList.remove('on'));
+  el.classList.add('on');
+  document.querySelectorAll('#cad-p,#cad-i').forEach(d => d.style.display = 'none');
+  document.getElementById(id).style.display = 'block';
+}
+
+// ============================================================
+// MODAIS
+// ============================================================
+async function openModalLouvor() {
+  const igId = document.getElementById('pc-igreja')?.value || currentIgrejaId;
+  const { data } = await sb.from('louvores_banco').select('*').eq('igreja_id', igId).order('titulo');
+  const div = document.getElementById('modal-louvor-list');
+  div.innerHTML = (data || []).map(l => `
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid #E8EBF2">
+      <span style="font-size:14px;color:#0B1D3A">${l.titulo}</span>
+      <button onclick="deleteLouvor('${l.id}')" style="background:#FDECEA;color:#C0392B;border:none;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;font-family:'Outfit',sans-serif;font-weight:600">Excluir</button>
+    </div>`).join('') || '<p style="font-size:13px;color:#6B7A8D;padding:8px 0">Nenhum louvor no banco.</p>';
+  document.getElementById('modal-louvor').classList.add('on');
+}
+
+async function addLouvorBanco() {
+  const inp = document.getElementById('ml-inp');
+  const titulo = inp.value.trim();
+  const igId = document.getElementById('pc-igreja')?.value || currentIgrejaId;
+  if (!titulo) { showToast('Digite o título do louvor'); return; }
+  const { error } = await sb.from('louvores_banco').insert([{ titulo, igreja_id: igId }]);
+  if (error) { showToast('Erro: ' + error.message); return; }
+  inp.value = '';
+  showToast('Louvor adicionado ao banco!');
+  openModalLouvor();
+  loadLouvorList();
+}
+
+async function deleteLouvor(id) {
+  await sb.from('louvores_banco').delete().eq('id', id);
+  showToast('Louvor excluído');
+  openModalLouvor();
+  loadLouvorList();
+}
+
+function openModalPessoa() { document.getElementById('modal-pessoa').classList.add('on'); }
+function openModalIgreja() { document.getElementById('modal-igreja').classList.add('on'); }
+function openModalGrupo() { document.getElementById('modal-grupo').classList.add('on'); }
+function closeModal(id) { document.getElementById(id).classList.remove('on'); }
+
+async function cadastrarPessoa() {
+  const nome = document.getElementById('mp-nome').value.trim();
+  const tel = document.getElementById('mp-tel').value.trim().replace(/\D/g, '');
+  const senha = document.getElementById('mp-senha').value;
+  const cargo = document.getElementById('mp-cargo').value;
+  const is_admin = document.getElementById('mp-admin').checked;
+  if (!nome || !tel || !senha) { showToast('Preencha nome, telefone e senha'); return; }
+  if (senha.length < 6) { showToast('Senha deve ter mínimo 6 caracteres'); return; }
+
+  // Criar auth via signUp (sem admin SDK no frontend)
+  const email = tel + '@gdc.app';
+  const { data: au, error: ae } = await sb.auth.signUp({ email, password: senha });
+  if (ae) { showToast('Erro auth: ' + ae.message); return; }
+
+  const uid = au?.user?.id;
+  if (!uid) { showToast('Erro ao criar usuário'); return; }
+
+  const { error: pe } = await sb.from('perfis').insert([{ id: uid, nome_completo: nome, telefone: tel, cargo, is_admin }]);
+  if (pe) { showToast('Erro perfil: ' + pe.message); return; }
+
+  if (currentIgrejaId) {
+    await sb.from('perfis_igrejas').insert([{ perfil_id: uid, igreja_id: currentIgrejaId }]);
+  }
+
+  showToast('Pessoa cadastrada com sucesso!');
+  closeModal('modal-pessoa');
+  loadCadastros();
+}
+
+async function cadastrarIgreja() {
+  const nome = document.getElementById('mi-nome').value.trim();
+  const endereco = document.getElementById('mi-end').value.trim();
+  const cnpj = document.getElementById('mi-cnpj').value.trim();
+  if (!nome) { showToast('Digite o nome da igreja'); return; }
+  const { error } = await sb.from('igrejas').insert([{ nome, endereco: endereco || null, cnpj: cnpj || null }]);
+  if (error) { showToast('Erro: ' + error.message); return; }
+  showToast('Igreja cadastrada!');
+  closeModal('modal-igreja');
+  await loadProfile();
+  loadCadastros();
+}
+
+async function cadastrarGrupo() {
+  const nome = document.getElementById('mg-nome').value.trim();
+  if (!nome) { showToast('Digite o nome do grupo'); return; }
+  const { error } = await sb.from('grupos').insert([{ nome_grupo: nome, igreja_id: currentIgrejaId, responsavel_id: currentUser.id }]);
+  if (error) { showToast('Erro: ' + error.message); return; }
+  showToast('Grupo criado!');
+  closeModal('modal-grupo');
+  loadGrupos();
+}
+
+// ============================================================
+// UTILS
+// ============================================================
+let toastTimer;
+function showToast(msg) {
+  clearTimeout(toastTimer);
+  document.getElementById('tmsg').textContent = msg;
+  const t = document.getElementById('toast');
+  t.classList.add('on');
+  toastTimer = setTimeout(() => t.classList.remove('on'), 3200);
+}
+</script>
+</body>
+</html>
